@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SearchAI - Intelligent Search Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+--bg:#08090c;--bg2:#0e1015;--bg3:#151820;--bg4:#1c2028;
+--border:#232830;--border2:#2e3440;
+--fg:#e8eaed;--fg2:#9aa0ac;--fg3:#5c6370;
+--accent:#10b981;--accent2:#34d399;--accent-dim:rgba(16,185,129,0.08);--accent-glow:rgba(16,185,129,0.15);
+--blue:#3b82f6;--orange:#f59e0b;--red:#ef4444;--purple:#a78bfa;
+--code-bg:#0a0c10;--code-border:#1e222c;
+--radius:10px;--radius-sm:6px;--radius-lg:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
+::selection{background:var(--accent);color:#000}
+
+.header{height:54px;min-height:54px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(8,9,12,0.9);backdrop-filter:blur(16px);z-index:10}
+.h-left{display:flex;align-items:center;gap:10px}
+.h-logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#000;font-weight:900;font-size:.8rem}
+.h-name{font-weight:800;font-size:.92rem;letter-spacing:-.3px}
+.h-name span{color:var(--accent)}
+.h-badge{font-size:.58rem;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:700;border:1px solid rgba(16,185,129,0.15)}
+.h-right{display:flex;gap:6px}
+.h-btn{width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.78rem;transition:all .15s}
+.h-btn:hover{border-color:var(--accent);color:var(--accent)}
+.h-btn.mic-active{border-color:var(--red);color:var(--red);animation:micGlow 1s ease-in-out infinite}
+@keyframes micGlow{0%,100%{box-shadow:none}50%{box-shadow:0 0 12px rgba(239,68,68,.35)}}
+
+.main-wrap{flex:1;display:flex;overflow:hidden;position:relative}
+
+.sidebar{width:260px;min-width:260px;border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;transition:transform .25s ease,opacity .25s ease;z-index:5}
+.sidebar.collapsed{transform:translateX(-100%);opacity:0;position:absolute;pointer-events:none}
+
+.sb-head{padding:12px 12px 8px;display:flex;align-items:center;justify-content:space-between}
+.sb-label{font-size:.72rem;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:1px}
+.sb-new{width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.72rem;transition:all .12s}
+.sb-new:hover{background:var(--bg3);border-color:var(--accent);color:var(--accent)}
+
+.sb-list{flex:1;overflow-y:auto;padding:2px 6px 8px}
+.si{padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s;margin-bottom:1px}
+.si:hover{background:var(--bg3)}
+.si.active{background:var(--bg4)}
+.si-icon{color:var(--fg3);font-size:.72rem;width:16px;text-align:center;flex-shrink:0}
+.si-text{flex:1;overflow:hidden}
+.si-title{font-size:.78rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2)}
+.si.active .si-title{color:var(--fg)}
+.si-time{font-size:.6rem;color:var(--fg3);margin-top:1px}
+.si-del{opacity:0;width:22px;height:22px;border-radius:4px;border:none;background:transparent;color:var(--fg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.6rem;transition:all .1s;flex-shrink:0}
+.si:hover .si-del{opacity:1}
+.si-del:hover{background:rgba(239,68,68,.12);color:var(--red)}
+
+.sb-hint{padding:10px 12px;border-top:1px solid var(--border);font-size:.65rem;color:var(--fg3);line-height:1.5}
+.sb-hint i{color:var(--accent);margin-right:4px}
+
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.chat-scroll{flex:1;overflow-y:auto}
+.chat-inner{max-width:760px;margin:0 auto;padding:20px 24px 10px}
+
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center}
+.w-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#059669);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#000;margin-bottom:18px;box-shadow:0 0 40px var(--accent-glow)}
+.welcome h2{font-size:1.5rem;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.welcome h2 span{color:var(--accent)}
+.welcome p{color:var(--fg2);font-size:.85rem;max-width:440px;line-height:1.65;margin-bottom:24px}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:500px}
+.wc{padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;cursor:pointer;text-align:left;transition:all .12s}
+.wc:hover{border-color:var(--border2);background:var(--bg2)}
+.wc-top{font-size:.76rem;font-weight:600;margin-bottom:2px}
+.wc-bot{font-size:.68rem;color:var(--fg3);line-height:1.3}
+
+.msg{margin-bottom:22px;animation:mIn .22s ease}
+@keyframes mIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg-head{font-size:.68rem;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px}
+.msg-ai .msg-head{color:var(--accent)}
+.msg-user .msg-head{color:var(--fg3)}
+.msg-dot{width:4px;height:4px;border-radius:50%}
+.msg-ai .msg-dot{background:var(--accent)}
+.msg-user .msg-dot{background:var(--fg3)}
+.msg-body{padding-left:12px;border-left:2px solid var(--border);font-size:.86rem;line-height:1.72}
+.msg-ai .msg-body{border-left-color:var(--accent)}
+.msg-user .msg-body{border-left-color:transparent;color:var(--fg2)}
+.msg-body p{margin-bottom:8px}.msg-body p:last-child{margin-bottom:0}
+.msg-body strong{color:var(--fg);font-weight:700}
+.msg-body em{color:var(--fg2)}
+.msg-body ul,.msg-body ol{margin:6px 0 6px 18px}
+.msg-body li{margin-bottom:3px}
+.msg-body li::marker{color:var(--accent)}
+.msg-body a{color:var(--accent);text-decoration:none}
+.msg-body a:hover{text-decoration:underline}
+
+.sr-list{margin:12px 0;display:flex;flex-direction:column;gap:8px}
+.sr-item{padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);transition:all .15s;cursor:pointer;text-decoration:none!important;display:block}
+.sr-item:hover{border-color:var(--accent);background:var(--bg3)}
+.sr-title{font-size:.82rem;font-weight:700;color:var(--accent2);margin-bottom:3px;line-height:1.3}
+.sr-url{font-size:.65rem;color:var(--blue);margin-bottom:4px;word-break:break-all}
+.sr-snippet{font-size:.76rem;color:var(--fg2);line-height:1.45}
+.sr-badge{display:inline-flex;align-items:center;gap:4px;font-size:.6rem;color:var(--fg3);background:var(--bg);padding:2px 7px;border-radius:4px;margin-top:5px}
+
+.msg-body pre{background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius-sm);padding:12px 14px;margin:10px 0;overflow-x:auto;position:relative}
+.msg-body code{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--fg2)}
+.msg-body pre code{color:#b8bcc8}
+.msg-body p code{background:var(--code-bg);border:1px solid var(--code-border);padding:1px 5px;border-radius:3px;font-size:.76rem;color:var(--accent2)}
+.ccopy{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--fg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.6rem;transition:all .1s;opacity:0}
+pre:hover .ccopy{opacity:1}
+.ccopy:hover{border-color:var(--accent);color:var(--accent)}
+
+.src-chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 2px}
+.src-chip{font-size:.62rem;padding:2px 8px;border-radius:10px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(16,185,129,0.12);display:inline-flex;align-items:center;gap:3px}
+
+.msg-acts{display:flex;gap:2px;margin-top:6px;padding-left:12px;opacity:0;transition:opacity .1s}
+.msg:hover .msg-acts{opacity:1}
+.ma{padding:3px 7px;border-radius:4px;border:none;background:transparent;color:var(--fg3);cursor:pointer;font-size:.65rem;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all .1s;font-weight:500}
+.ma:hover{background:var(--bg3);color:var(--fg2)}
+
+.typing{margin-bottom:22px;animation:mIn .22s ease}
+.typing-row{display:flex;align-items:center;gap:7px;padding-left:12px;border-left:2px solid var(--accent)}
+.typing-lbl{font-size:.68rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+.typing-phase{font-size:.72rem;color:var(--fg3);font-style:italic}
+.typing-dots{display:flex;gap:3px;align-items:center}
+.td{width:4px;height:4px;border-radius:50%;background:var(--fg3);animation:tbounce .9s ease-in-out infinite}
+.td:nth-child(2){animation-delay:.1s}.td:nth-child(3){animation-delay:.2s}
+@keyframes tbounce{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-4px);opacity:1}}
+
+.input-area{padding:10px 24px 16px;border-top:1px solid var(--border);background:rgba(8,9,12,0.92);backdrop-filter:blur(14px)}
+.input-wrap{max-width:760px;margin:0 auto}
+.input-box{display:flex;align-items:flex-end;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg2);padding:4px;transition:all .15s}
+.input-box:focus-within{border-color:var(--border2);box-shadow:0 0 0 2px var(--accent-dim)}
+.input-box textarea{flex:1;background:none;border:none;color:var(--fg);font-family:inherit;font-size:.86rem;padding:8px 11px;outline:none;resize:none;max-height:140px;line-height:1.5;min-height:22px}
+.input-box textarea::placeholder{color:var(--fg3)}
+.voice-btn{width:34px;height:34px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--fg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .15s;flex-shrink:0}
+.voice-btn:hover{color:var(--accent);background:var(--accent-dim)}
+.voice-btn.listening{color:#fff;background:var(--red);animation:voicePulse 1.2s ease-in-out infinite}
+@keyframes voicePulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 10px rgba(239,68,102,0)}}
+.send-btn{width:34px;height:34px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.82rem;transition:all .15s;flex-shrink:0}
+.send-btn:hover{background:var(--accent2);box-shadow:0 0 14px var(--accent-glow)}
+.send-btn:disabled{opacity:.2;cursor:not-allowed;box-shadow:none}
+.input-hint{text-align:center;font-size:.6rem;color:var(--fg3);margin-top:6px}
+.input-hint kbd{color:var(--fg2);background:var(--bg3);padding:0 4px;border-radius:3px;border:1px solid var(--border);font-family:inherit;font-size:.58rem}
+.voice-hint{display:none;align-items:center;gap:7px;padding:6px 12px;margin-bottom:6px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.12);border-radius:var(--radius-sm);font-size:.72rem;color:var(--red);font-weight:600}
+.voice-hint.show{display:flex}
+.vh-dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:vhPulse 1s ease-in-out infinite;flex-shrink:0}
+@keyframes vhPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.vh-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vh-stop{padding:2px 10px;border-radius:4px;border:1px solid rgba(239,68,68,.25);background:transparent;color:var(--red);cursor:pointer;font-size:.65rem;font-family:inherit;font-weight:600;white-space:nowrap;transition:all .12s}
+.vh-stop:hover{background:rgba(239,68,68,.1)}
+
+/* Voice Overlay */
+.voice-overlay{display:none;position:fixed;inset:0;z-index:50;background:rgba(8,9,12,.94);flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(20px)}
+.voice-overlay.show{display:flex}
+.vo-mic{width:76px;height:76px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#fff;margin-bottom:22px;animation:voPulse 1.4s ease-in-out infinite}
+@keyframes voPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 28px rgba(239,68,102,0)}}
+.vo-label{font-size:.95rem;font-weight:600;margin-bottom:6px}
+.vo-text{font-size:1.5rem;font-weight:700;color:var(--accent);text-align:center;max-width:460px;min-height:36px;margin-bottom:28px;line-height:1.4}
+.vo-hint{font-size:.72rem;color:var(--fg3);margin-bottom:18px}
+.vo-cancel{padding:9px 28px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--fg);cursor:pointer;font-size:.82rem;font-family:inherit;font-weight:600;transition:all .12s}
+.vo-cancel:hover{border-color:var(--red);color:var(--red)}
+
+/* Speak btn in AI messages */
+.speak-btn{position:absolute;top:0;right:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--fg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:all .12s;z-index:2}
+.speak-btn:hover{border-color:var(--accent);color:var(--accent)}
+.speak-btn.speaking{color:var(--accent);border-color:var(--accent);animation:micGlow 1s ease-in-out infinite}
+
+.toast-c{position:fixed;top:62px;right:16px;z-index:100;display:flex;flex-direction:column;gap:6px}
+.toast{padding:7px 13px;border-radius:var(--radius-sm);font-size:.75rem;font-weight:600;display:flex;align-items:center;gap:6px;animation:tI .2s ease,tO .2s ease 2.2s forwards;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.toast-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--accent)}
+.toast-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+.toast-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--blue)}
+@keyframes tI{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tO{from{opacity:1}to{opacity:0;transform:translateY(-5px)}}
+
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4}
+.sb-overlay.show{display:block}
+
+@media(max-width:768px){
+.sidebar{position:fixed;left:0;top:54px;bottom:0;z-index:5;transform:translateX(-100%);opacity:1;pointer-events:auto}
+.sidebar.open{transform:translateX(0)}
+.w-grid{grid-template-columns:1fr}
+.chat-inner{padding:14px 12px 6px}
+.input-area{padding:8px 12px 12px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div class="sb-overlay" id="sbOv" onclick="toggleSB()"></div>
+
+<header class="header">
+    <div class="h-left">
+        <button class="h-btn" onclick="toggleSB()" title="Toggle sidebar"><i class="fas fa-bars"></i></button>
+        <div class="h-logo"><i class="fas fa-magnifying-glass"></i></div>
+        <div class="h-name">Search<span>AI</span></div>
+        <span class="h-badge">LIVE SEARCH</span>
+    </div>
+    <div class="h-right">
+        <button class="h-btn" id="hMic" onclick="startVoice()" title="Voice search"><i class="fas fa-microphone"></i></button>
+        <button class="h-btn" onclick="newSearch()" title="New search"><i class="fas fa-plus"></i></button>
+        <button class="h-btn" onclick="clearAll()" title="Clear"><i class="fas fa-eraser"></i></button>
+    </div>
+</header>
+
+<div class="main-wrap">
+    <aside class="sidebar" id="sidebar">
+        <div class="sb-head">
+            <span class="sb-label">Search History</span>
+            <button class="sb-new" onclick="newSearch()"><i class="fas fa-plus"></i></button>
+        </div>
+        <div class="sb-list" id="sbList"></div>
+        <div class="sb-hint"><i class="fas fa-circle-info"></i> Searches the web via DuckDuckGo. Voice search uses Web Speech API — works best in Chrome.</div>
+    </aside>
+
+    <div class="chat-area">
+        <div class="chat-scroll" id="chatScroll">
+            <div class="chat-inner" id="chatInner"></div>
+        </div>
+        <div class="input-area">
+            <div class="input-wrap">
+                <div class="voice-hint" id="voiceHint">
+                    <div class="vh-dot"></div>
+                    <span class="vh-text" id="vhText">Listening...</span>
+                    <button class="vh-stop" onclick="stopVoice()">Stop</button>
+                </div>
+                <div class="input-box">
+                    <textarea id="msgIn" rows="1" placeholder="Search anything..." onkeydown="handleKey(event)" oninput="autoR(this)"></textarea>
+                    <button class="voice-btn" id="vBtn" onclick="startVoice()" title="Voice search"><i class="fas fa-microphone"></i></button>
+                    <button class="send-btn" id="sendBtn" onclick="sendMsg()" disabled><i class="fas fa-arrow-up"></i></button>
+                </div>
+                <div class="input-hint"><kbd>Enter</kbd> to search &middot; <kbd>Shift+Enter</kbd> new line &middot; <kbd>Click mic</kbd> to use voice</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Voice Overlay -->
+<div class="voice-overlay" id="voiceOv">
+    <div class="vo-mic"><i class="fas fa-microphone"></i></div>
+    <div class="vo-label">Listening...</div>
+    <div class="vo-text" id="voText"></div>
+    <div class="vo-hint">Speak now — tap Cancel to stop</div>
+    <button class="vo-cancel" onclick="stopVoice()">Cancel</button>
+</div>
+
+<div class="toast-c" id="toastC"></div>
+
+<script>
+/* ===== STATE ===== */
+var searches=[], activeId=null, busy=false, isListening=false, recognition=null;
+
+/* ===== SAFE WRAPPER ===== */
+function safe(fn){try{return fn()}catch(e){return null}}
+function safeAsync(fn){try{return Promise.resolve(fn())}catch(e){return Promise.resolve(null)}}
+
+/* ===== STORAGE ===== */
+function load(){safe(function(){var d=localStorage.getItem('sai_searches');if(d)searches=JSON.parse(d)})}
+function save(){safe(function(){localStorage.setItem('sai_searches',JSON.stringify(searches))})}
+
+/* ===== TOAST ===== */
+function toast(m,t){
+    t=t||'ok';var c=document.getElementById('toastC'),el=document.createElement('div');
+    el.className='toast toast-'+t;
+    var ic={ok:'fa-check',err:'fa-xmark',info:'fa-info'};
+    el.innerHTML='<i class="fas '+(ic[t]||'fa-info')+'"></i>'+m;
+    c.appendChild(el);setTimeout(function(){if(el.parentNode)el.remove()},2600);
+}
+
+/* ===== UTILS ===== */
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function escA(s){return s.replace(/'/g,"\\'")}
+function fmtT(ts){if(!ts)return'';var d=new Date(ts);return('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+function scrl(){var a=document.getElementById('chatScroll');requestAnimationFrame(function(){a.scrollTop=a.scrollHeight})}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+/* ===== SEARCH MANAGEMENT ===== */
+function getS(){return searches.find(function(s){return s.id===activeId})}
+
+function newSearch(){
+    var s={id:Date.now().toString(36)+Math.random().toString(36).substr(2,4),title:'New search',messages:[],ts:Date.now()};
+    searches.unshift(s);activeId=s.id;save();renderSB();renderChat();closeSB();document.getElementById('msgIn').focus();
+}
+
+function selectS(id){activeId=id;renderSB();renderChat();closeSB()}
+function deleteS(id,e){e.stopPropagation();searches=searches.filter(function(s){return s.id!==id});if(activeId===id)activeId=searches.length?searches[0].id:null;save();renderSB();renderChat()}
+function clearAll(){var s=getS();if(!s||!s.messages.length)return;s.messages=[];s.title='New search';save();renderChat();renderSB();toast('Cleared')}
+
+/* ===== SIDEBAR ===== */
+function renderSB(){
+    var l=document.getElementById('sbList');
+    if(!searches.length){l.innerHTML='<div style="padding:20px;text-align:center;color:var(--fg3);font-size:.72rem">No searches yet</div>';return}
+    l.innerHTML=searches.map(function(s){return '<div class="si '+(s.id===activeId?'active':'')+'" onclick="selectS(\''+s.id+'\')"><i class="fas fa-magnifying-glass si-icon"></i><div class="si-text"><div class="si-title">'+esc(s.title)+'</div><div class="si-time">'+fmtT(s.ts)+'</div></div><button class="si-del" onclick="deleteS(\''+s.id+'\',event)"><i class="fas fa-xmark"></i></button></div>'}).join('');
+}
+
+/* ===== RENDER CHAT ===== */
+function renderChat(){
+    var inner=document.getElementById('chatInner'),s=getS();
+    if(!s||!s.messages.length){
+        inner.innerHTML='<div class="welcome"><div class="w-icon"><i class="fas fa-magnifying-glass"></i></div><h2>What do you want to <span>find</span>?</h2><p>I search the web in real-time and give you clear, organized answers with sources. Type or use voice — your choice.</p><div class="w-grid"><div class="wc" onclick="qp(\'Latest news about artificial intelligence\')"><div class="wc-top"><i class="fas fa-newspaper" style="color:var(--orange);margin-right:5px"></i>Latest AI news</div><div class="wc-bot">Current headlines about AI</div></div><div class="wc" onclick="qp(\'How does photosynthesis work\')"><div class="wc-top"><i class="fas fa-leaf" style="color:var(--accent);margin-right:5px"></i>Explain a concept</div><div class="wc-bot">How does photosynthesis work</div></div><div class="wc" onclick="qp(\'Best programming languages to learn in 2025\')"><div class="wc-top"><i class="fas fa-code" style="color:var(--blue);margin-right:5px"></i>Best languages 2025</div><div class="wc-bot">Programming languages comparison</div></div><div class="wc" onclick="qp(\'Recipe for homemade pasta from scratch\')"><div class="wc-top"><i class="fas fa-utensils" style="color:var(--purple);margin-right:5px"></i>Find a recipe</div><div class="wc-bot">Homemade pasta from scratch</div></div></div></div>';
+        return;
+    }
+    inner.innerHTML=s.messages.map(function(m,i){return renderMsg(m,i)}).join('');
+    scrl();
+}
+
+function renderMsg(m,i){
+    var u=m.role==='user';
+    return '<div class="msg '+(u?'msg-user':'msg-ai')+'"><div class="msg-head"><span class="msg-dot"></span>'+(u?'You':'SearchAI')+'</div><div class="msg-body" style="position:relative">'+(u?'<p>'+esc(m.content).replace(/\n/g,'<br>')+'</p>':fmtAI(m.content))+((!u)?'<button class="speak-btn" onclick="toggleSpeak(this)" title="Listen to answer"><i class="fas fa-volume-high"></i></button>':'')+'</div><div class="msg-acts"><button class="ma" onclick="copyM('+i+')"><i class="fas fa-copy"></i> Copy</button>'+((!u)?'<button class="ma" onclick="copySrc('+i+')"><i class="fas fa-link"></i> Sources</button>':'')+'</div></div>';
+}
+
+function fmtAI(t){
+    t=t.replace(/\{\{RESULTS\}\}([\s\S]*?)\{\{\/RESULTS\}\}/g,function(_,r){return r});
+    t=t.replace(/\{\{SOURCES\}\}([\s\S]*?)\{\{\/SOURCES\}\}/g,function(_,s){return '<div class="src-chips"><i class="fas fa-globe" style="font-size:.58rem"></i> '+s.trim()+'</div>'});
+    t=t.replace(/```(\w*)\n([\s\S]*?)```/g,function(_,l,c){return '<pre><code>'+esc(c.trim())+'</code><button class="ccopy" onclick="copyCode(this)"><i class="fas fa-copy"></i></button></pre>'});
+    t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
+    t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    t=t.replace(/\*(.+?)\*/g,'<em>$1</em>');
+    t=t.replace(/^[-•] (.+)$/gm,'<li>$1</li>');
+    t=t.replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>');
+    t=t.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
+    t=t.split('\n\n').map(function(p){p=p.trim();if(!p)return'';if(p.startsWith('<'))return p;return'<p>'+p.replace(/\n/g,'<br>')+'</p>'}).join('');
+    return t;
+}
+
+/* ===== SEND & SEARCH ===== */
+async function sendMsg(){
+    var inp=document.getElementById('msgIn'),txt=inp.value.trim();
+    if(!txt||busy)return;
+    var s=getS();if(!s)s=newSearch();
+    s.messages.push({role:'user',content:txt,ts:Date.now()});
+    if(s.messages.filter(function(m){return m.role==='user'}).length===1){s.title=txt.substring(0,32)+(txt.length>32?'...':'');renderSB()}
+    inp.value='';inp.style.height='auto';document.getElementById('sendBtn').disabled=true;
+    save();renderChat();
+    await doSearch(txt,s);
+}
+
+function qp(t){document.getElementById('msgIn').value=t;sendMsg()}
+
+async function doSearch(query,session){
+    busy=true;
+    showTyping('Searching the web...');await wait(400);
+    var results=[];
+    try{results=await fetchDDG(query)}catch(e){console.error('Search error:',e)}
+    if(results.length){updateTyping('Analyzing results...');await wait(500)}
+    updateTyping('Composing answer...');await wait(400);
+    hideTyping();
+    var answer=composeAnswer(query,results);
+    session.messages.push({role:'ai',content:answer,ts:Date.now()});
+    save();renderChat();busy=false;
+}
+
+/* ===== DUCKDUCKGO ===== */
+async function fetchDDG(query){
+    var resp=await fetch('https://html.duckduckgo.com/html/?q='+encodeURIComponent(query),{credentials:'omit'});
+    var html=await resp.text();
+    var parser=new DOMParser();var doc=parser.parseFromString(html,'text/html');
+    var items=[];
+    doc.querySelectorAll('.result').forEach(function(el){
+        var titleEl=el.querySelector('.result__title');
+        var snippetEl=el.querySelector('.result__snippet');
+        var urlEl=el.querySelector('.result__url');
+        if(titleEl&&snippetEl){
+            var title=titleEl.textContent.trim();
+            var snippet=snippetEl.textContent.trim();
+            var url=urlEl?urlEl.textContent.trim():'';
+            if(url&&!url.startsWith('http'))url='https://'+url;
+            if(title&&snippet&&title.length>3)items.push({title:title,snippet:snippet,url:url});
+        }
+    });
+    return items.slice(0,6);
+}
+
+/* ===== COMPOSE ANSWER ===== */
+function composeAnswer(query,results){
+    if(!results.length)return 'I couldn\'t find any web results for **"'+query+'"**.\n\nThis could be because:\n- The query is very short or ambiguous\n- DuckDuckGo temporarily blocked the request\n- Network connectivity issue\n\nTry rephrasing your search or adding more specific terms.';
+
+    var q=query.toLowerCase();
+    var resultsHTML='{{RESULTS}}\n<div class="sr-list">\n';
+    var sources=[];
+    results.forEach(function(r){
+        var domain=r.url?r.url.replace(/^https?:\/\/(www\.)?/,'').split('/')[0]:'unknown';
+        sources.push(domain);
+        resultsHTML+='<a href="'+(r.url||'#')+'" target="_blank" rel="noopener" class="sr-item"><div class="sr-title">'+esc(r.title)+'</div><div class="sr-url">'+esc(r.url||'')+'</div><div class="sr-snippet">'+esc(r.snippet)+'</div><div class="sr-badge"><i class="fas fa-arrow-up-right-from-square"></i> '+esc(domain)+'</div></a>\n';
+    });
+    resultsHTML+='</div>\n{{/RESULTS}}';
+
+    var uniqueSrc=[];var seen={};sources.forEach(function(s){if(!seen[s]){seen[s]=true;uniqueSrc.push(s)}});uniqueSrc=uniqueSrc.slice(0,5);
+    var srcHTML='{{SOURCES}}'+uniqueSrc.map(function(s){return '<span class="src-chip">'+esc(s)+'</span>'}).join(' ')+'{{/SOURCES}}';
+
+    var isNews=q.match(/news|latest|today|current|breaking|update|2024|2025/);
+    var isHow=q.match(/how to|how do|how can|steps|guide|tutorial|way to/);
+    var isWhat=q.match(/what is|what are|define|definition|meaning of|explain/);
+    var isBest=q.match(/best|top|recommended|vs|versus|compare|ranking/);
+    var isWhy=q.match(/why|reason|cause|because/);
+    var answer='';
+
+    if(isNews){answer='Here\'s what I found about **"'+query+'"**:\n\n'+resultsHTML+'\n\n'+srcHTML+'\n\nThese are the latest results. For real-time breaking news, check the source links directly.'}
+    else if(isHow){answer='Based on web results for **"'+query+'"**:\n\n'+results.map(function(r,i){return '**'+(i+1)+'.** '+r.snippet}).join('\n\n')+'\n\n'+resultsHTML+srcHTML+'\n\nClick through to sources for detailed step-by-step guides.'}
+    else if(isWhat){var m=results[0];answer='**'+m.title+'**\n\n'+m.snippet+'\n\n'+resultsHTML+srcHTML+'\n\nThe top result gives a solid overview. Check other sources for more depth.'}
+    else if(isBest){answer='Here\'s what the web says about **"'+query+'"**:\n\n'+resultsHTML+srcHTML+'\n\nThese sources compare different options. Click through for detailed tables and benchmarks.'}
+    else if(isWhy){var top3=results.slice(0,3);answer='Here\'s what I found about **"'+query+'"**:\n\n'+top3.map(function(r,i){return '**Point '+(i+1)+':** '+r.snippet}).join('\n\n')+'\n\n'+resultsHTML+srcHTML+'\n\nThe sources explore this from different angles. Read at least 2-3 for a complete understanding.'}
+    else{answer='Here are the top results for **"'+query+'"**:\n\n'+resultsHTML+srcHTML+'\n\nI found '+results.length+' relevant results. Click through for full details.'}
+
+    return answer;
+}
+
+/* ===== TYPING ===== */
+function showTyping(phase){
+    var inner=document.getElementById('chatInner'),el=document.createElement('div');
+    el.className='typing';el.id='typInd';
+    el.innerHTML='<div class="typing-row"><span class="typing-lbl">SearchAI</span><span class="typing-phase">'+esc(phase||'Thinking...')+'</span><div class="typing-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>';
+    inner.appendChild(el);scrl();
+}
+function updateTyping(phase){var el=document.getElementById('typInd');if(!el)return;var p=el.querySelector('.typing-phase');if(p)p.textContent=phase}
+function hideTyping(){var el=document.getElementById('typInd');if(el)el.remove()}
+
+/* ===== VOICE SEARCH ===== */
+function initRec(){
+    try{
+        var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+        if(!SR)return null;
+        var r=new SR();
+        r.continuous=false;r.interimResults=true;r.lang='en-US';r.maxAlternatives=1;
+        r.onresult=function(e){
+            var fin='',intm='';
+            for(var i=e.resultIndex;i<e.results.length;i++){
+                if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
+                else intm+=e.results[i][0].transcript;
+            }
+            var d=fin||intm;
+            document.getElementById('voText').textContent=d;
+            document.getElementById('vhText').textContent=d||'Listening...';
+            document.getElementById('msgIn').value=d;
+            document.getElementById('sendBtn').disabled=!d;
+        };
+        r.onend=function(){setLis(false);var q=document.getElementById('msgIn').value.trim();if(q)setTimeout(sendMsg,300)};
+        r.onerror=function(e){
+            setLis(false);
+            if(e.error==='not-allowed')toast('Microphone permission denied — allow it in browser settings','err');
+            else if(e.error==='no-speech')toast('No speech detected, try again','info');
+            else if(e.error==='aborted'){/* user cancelled, silent */}
+            else if(e.error==='audio-capture')toast('No microphone found on this device','err');
+            else if(e.error==='network')toast('Network error during voice search','err');
+            else toast('Voice error: '+e.error,'err');
+        };
+        return r;
+    }catch(e){return null}
+}
+
+function startVoice(){
+    if(isListening){stopVoice();return}
+    if(!recognition)recognition=initRec();
+    if(!recognition){toast('Voice not supported — use Chrome or Edge browser','err');return}
+    // Stop any ongoing speech
+    safe(function(){window.speechSynthesis.cancel()});
+    // Stop any pending recognition
+    safe(function(){recognition.stop()});
+    setTimeout(function(){
+        safe(function(){
+            try{recognition.start();setLis(true)}
+            catch(e){try{recognition.stop();setTimeout(function(){try{recognition.start();setLis(true)}catch(e2){}},200)}catch(e2){toast('Voice error, try again','err')}}
+        });
+    },150);
+}
+
+function stopVoice(){safe(function(){if(recognition)recognition.stop()});setLis(false)}
+
+function setLis(on){
+    isListening=on;
+    document.getElementById('vBtn').classList.toggle('listening',on);
+    document.getElementById('hMic').classList.toggle('mic-active',on);
+    document.getElementById('voiceHint').classList.toggle('show',on);
+    document.getElementById('voiceOv').classList.toggle('show',on);
+    if(on){document.getElementById('voText').textContent='';document.getElementById('vhText').textContent='Listening...'}
+}
+
+/* ===== TEXT TO SPEECH ===== */
+function toggleSpeak(btn){
+    if(!window.speechSynthesis){toast('Speech not supported in this browser','err');return}
+    try{
+        if(window.speechSynthesis.speaking){window.speechSynthesis.cancel();btn.classList.remove('speaking')}
+        else{
+            // Get plain text from the message body (sibling of the button)
+            var body=btn.parentElement;
+            var clone=body.cloneNode(true);
+            var tmp=document.createElement('div');tmp.appendChild(clone);
+            var text=tmp.textContent||tmp.innerText||'';
+            text=text.replace(/\s+/g,' ').trim().substring(0,1000);
+            if(!text)return;
+            var u=new SpeechSynthesisUtterance(text);
+            u.rate=1;u.pitch=1;u.volume=.85;u.lang='en-US';
+            var voices=safe(function(){return window.speechSynthesis.getVoices()})||[];
+            var pv=voices.find(function(v){return v.lang.startsWith('en')&&v.name.indexOf('Google')!==-1})||voices.find(function(v){return v.lang.startsWith('en')&&!v.localService})||voices.find(function(v){return v.lang.startsWith('en')});
+            if(pv)u.voice=pv;
+            window.speechSynthesis.speak(u);
+            btn.classList.add('speaking');
+        }
+    }catch(e){toast('Speech error','err')}
+}
+
+// Auto-remove speaking class when speech ends
+safe(function(){
+    if(window.speechSynthesis){
+        window.speechSynthesis.onvoiceschanged=function(){};
+        window.speechSynthesis.addEventListener('end',function(){document.querySelectorAll('.speak-btn.speaking').forEach(function(b){b.classList.remove('speaking')})});
+        window.speechSynthesis.addEventListener('cancel',function(){document.querySelectorAll('.speak-btn.speaking').forEach(function(b){b.classList.remove('speaking')})});
+    }
+});
+
+/* ===== ACTIONS ===== */
+function copyM(i){
+    var s=getS();if(!s||!s.messages[i])return;
+    var c=s.messages[i].content.replace(/\{\{.*?\}\}/gs,'').replace(/<[^>]*>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').trim();
+    navigator.clipboard.writeText(c).then(function(){toast('Copied')});
+}
+function copySrc(i){
+    var s=getS();if(!s||!s.messages[i])return;
+    var c=s.messages[i].content;
+    var urls=[];var re=/class="sr-url">([^<]+)/g;var m;while((m=re.exec(c))!==null){urls.push(m[1].replace(/&amp;/g,'&'))}
+    if(!urls.length){toast('No sources found','err');return}
+    navigator.clipboard.writeText(urls.join('\n')).then(function(){toast(urls.length+' sources copied')});
+}
+function copyCode(btn){var pre=btn.closest('pre');if(!pre)return;navigator.clipboard.writeText(pre.querySelector('code')?.textContent||'').then(function(){toast('Code copied')})}
+
+/* ===== INPUT ===== */
+function autoR(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';document.getElementById('sendBtn').disabled=!el.value.trim()}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}}
+
+/* ===== SIDEBAR ===== */
+function toggleSB(){var sb=document.getElementById('sidebar'),ov=document.getElementById('sbOv'),m=window.innerWidth<=768;if(m){sb.classList.toggle('open');ov.classList.toggle('show')}else{sb.classList.toggle('collapsed')}}
+function closeSB(){if(window.innerWidth<=768){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbOv').classList.remove('show')}}
+
+/* ===== INIT ===== */
+load();
+if(searches.length)activeId=searches[0].id;
+renderSB();renderChat();
+try{document.getElementById('msgIn').focus()}catch(e){}
+</script>
+</body>
+</html>
